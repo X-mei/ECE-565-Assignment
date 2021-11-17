@@ -13,7 +13,7 @@ double calc_time(struct timeval start, struct timeval end) {
   } else {
     return end_sec - start_sec;
   }
-};
+}
 
 int add(int a, int b) {
   return (a+b);
