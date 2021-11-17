@@ -4,7 +4,7 @@
 #include <vector>
 #include <sys/time.h>
 #include <vector>
-
+#include <cstring>
 
 using namespace std;
 
@@ -19,13 +19,23 @@ double calc_time(struct timeval start, struct timeval end) {
     }
 }
 
+void print_water(double water_level[][4], int N){
+    cout << "###################" << endl;
+    for (int i=0; i<N; ++i){
+        for (int j=0; j<N; ++j){
+            cout << water_level[i][j] << " ";
+        }
+        cout << endl;
+    }
+}
+
 int main(int argc, char * argv[]){
     if (argc != 5){
         fprintf(stderr, "Argument Count.\n");
     }
     // read in the parameters
     int M = atoi(argv[1]);
-    double A = atoi(argv[2]);
+    double A = stod(argv[2]);
     int N = atoi(argv[3]);
     std::string file_name = argv[4];
     std::ifstream myfile (file_name);
@@ -70,26 +80,38 @@ int main(int argc, char * argv[]){
             }
         }
     }
-    for (int i=0; i<N; ++i){
-        for (int j=0; j<N; ++j){
-            for (auto loc: flow_map[i][j]){
-                cout << loc.first << "-" << loc.second << " ";
-            }
-        }
-    }
+    // for (int i=0; i<N; ++i){
+    //     for (int j=0; j<N; ++j){
+    //         for (auto loc: flow_map[i][j]){
+    //             cout << loc.first << "-" << loc.second << " ";
+    //         }
+    //     }
+    // }
 
     // run the simulation
+    int iter = 1;
     int step_taken = 0;
     double runtime = 0;
     bool done = false;
     double water_level[N][N];
+    memset(water_level, 0, sizeof(water_level));
     double absorbed[N][N];
+    memset(absorbed, 0, sizeof(absorbed));
     while (!done){
         done = true;
+        double level_change[N][N];
+        memset(level_change, 0, sizeof(level_change));
+        // cout << "###################" << endl;
+        // for (int i=0; i<N; ++i){
+        //     for (int j=0; j<N; ++j){
+        //         cout << water_level[i][j] << " ";
+        //     }
+        //     cout << endl;
+        // }
         for (int i=0; i<N; ++i){
             for (int j=0; j<N; ++j){
                 // rain falls
-                if (M--){
+                if (M > 0){
                     water_level[i][j] += 1;
                 }
                 // absorbed by current spot
@@ -107,12 +129,12 @@ int main(int argc, char * argv[]){
                     if (water_level[i][j] >= 1){
                         water_level[i][j] -= 1;
                         for (auto dest: flow_map[i][j]){
-                            water_level[dest.first][dest.second] += 1.0/split_cnt;
+                            level_change[dest.first][dest.second] += 1.0/split_cnt;
                         }
                     }
                     else if (water_level[i][j]>0){
                         for (auto dest: flow_map[i][j]){
-                            water_level[dest.first][dest.second] += water_level[i][j]/split_cnt;
+                            level_change[dest.first][dest.second] += water_level[i][j]/split_cnt;
                         }
                         water_level[i][j] = 0;
                     }
@@ -123,12 +145,19 @@ int main(int argc, char * argv[]){
                 }
             }
         }
+        for (int i=0; i<N; ++i){
+            for (int j=0; j<N; ++j){
+
+                water_level[i][j] += level_change[i][j];
+            }
+        }
         step_taken++;
+        M--;
     }
     gettimeofday(&end_time, NULL);
     runtime = calc_time(start_time, end_time);
-    cout << "Rainfall simulation completed in " << step_taken << "time steps." << endl;
-    cout << "Runtime = " << runtime << "seconds." << endl;
+    cout << "Rainfall simulation completed in " << step_taken << " time steps." << endl;
+    cout << "Runtime = " << runtime/1000.0 << " milliseconds." << endl;
     cout << "The following grid shows the number of raindrops absorbed at each point:" << endl;
     for (int i=0; i<N; i++){
         for (int j=0; j<N; j++){
