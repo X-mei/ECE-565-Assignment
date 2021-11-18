@@ -34,9 +34,9 @@ int main(int argc, char * argv[]){
         fprintf(stderr, "Argument Count.\n");
     }
     // read in the parameters
-    int M = atoi(argv[1]);
-    double A = stod(argv[2]);
-    int N = atoi(argv[3]);
+    int M = atoi(argv[1]);      // total rain drops
+    double A = stod(argv[2]);   // absorption rate
+    int N = atoi(argv[3]);      // landscape dimension, NxN
     std::string file_name = argv[4];
     std::ifstream myfile (file_name);
     int grid_height[N][N];
