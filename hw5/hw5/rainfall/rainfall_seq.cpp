@@ -89,7 +89,6 @@ int main(int argc, char * argv[]){
     // }
 
     // run the simulation
-    int iter = 1;
     int step_taken = 0;
     double runtime = 0;
     bool done = false;

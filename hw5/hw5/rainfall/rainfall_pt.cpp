@@ -14,7 +14,11 @@ int M;      // total rain drops
 double A;   // absorption rate
 int N;      // landscape dimension, NxN
 
-vector<vector<vector<pair<int, int>>>> flow_map(N, vector<vector<pair<int, int>>>(N));
+vector<vector<vector<pair<int, int>>>> flow_map;
+vector<vector<double>> water_level;
+vector<vector<double>> absorbed;
+vector<vector<int>> grid_height;
+vector<vector<double>> level_change;
 
 /* Helper function */
 double calc_time(struct timeval start, struct timeval end) {
@@ -38,7 +42,25 @@ void print_water(double water_level[][4], int N){
     }
 }
 
-void precompute(vector<vector<int>> grid_height) {
+void init(string file_name) {
+    flow_map = vector<vector<vector<pair<int, int>>>>(N, vector<vector<pair<int, int>>>(N));
+    water_level = vector<vector<double>>(N, vector<double>(N, 0.0));
+    absorbed = vector<vector<double>>(N, vector<double>(N, 0.0));
+    std::ifstream myfile (file_name);
+    if (myfile.is_open()){
+        for (int i=0; i<N; ++i){
+            vector<int> line;
+            int h;
+            for (int j=0; j<N; ++j){
+                myfile >> h;
+                line.push_back(h);
+            }
+            grid_height.push_back(line);
+        }
+    }
+}
+
+void precompute() {
     // precompute the flow pattern that will occur at each spot
     vector<pair<int, int>> masks{{-1,0},{1,0},{0,1},{0,-1}};
     for (int i=0; i<N; ++i){
@@ -70,13 +92,42 @@ void precompute(vector<vector<int>> grid_height) {
     }
 }
 
-/* Main compute function */
-void run_one_timestep() {
 
+/* Main compute function */
+void run_one_timestep_point(int i, int j) {
+    // rain falls
+    if (M > 0){
+        water_level[i][j] += 1;
+    }
+    // absorbed by current spot
+    if (water_level[i][j] >= A){
+        water_level[i][j] -= A;
+        absorbed[i][j] += A;
+    }
+    else if (water_level[i][j] > 0){
+        absorbed[i][j] += water_level[i][j];
+        water_level[i][j] = 0;
+    }
+    // flow to other spot
+    if (!flow_map[i][j].empty()){
+        double split_cnt = flow_map[i][j].size();
+        if (water_level[i][j] >= 1){
+            water_level[i][j] -= 1;
+            for (auto dest: flow_map[i][j]){
+                level_change[dest.first][dest.second] += 1.0/split_cnt;
+            }
+        }
+        else if (water_level[i][j]>0){
+            for (auto dest: flow_map[i][j]){
+                level_change[dest.first][dest.second] += water_level[i][j]/split_cnt;
+            }
+            water_level[i][j] = 0;
+        }
+    }
 }
 
 int main(int argc, char * argv[]){
-    if (argc != 5){
+    if (argc != 6){
         fprintf(stderr, "Argument Count.\n");
     }
     // read in the parameters
@@ -85,94 +136,49 @@ int main(int argc, char * argv[]){
     A = stod(argv[3]);      // absorption rate
     N = atoi(argv[4]);      // landscape dimension, NxN
     std::string file_name = argv[5];
-    std::ifstream myfile (file_name);
-    
-    vector<vector<int>> grid_height;
-    if (myfile.is_open()){
-        for (int i=0; i<N; ++i){
-            for (int j=0; j<N; ++j){
-                myfile >> grid_height[i][j];
-            }
-        }
-    }
+    init(file_name);
 
-    /* Initialize the threads, mutexes and barrier */
-    // create threads
+    /* Create the threads, mutexes and barrier */
     pthread_t *threads;
     threads = (pthread_t *) malloc(P * sizeof(pthread_t));
-    
-    for (int i = 0; i < P; i++) {
-        p = (int *) malloc(sizeof(int));
-        *p = i;
-        pthread_create(&threads[i], NULL, &runSimulation, (void *)(thrd_arg));
-    }
 
-    // pthread_create(&thrd, NULL, &runSimulation, NULL);
+    
+    int *thrd_arg;
+    for (int i = 0; i < P; i++) {
+        thrd_arg = (int *) malloc(sizeof(int));
+        *thrd_arg = i;
+        // pthread_create(&threads[i], NULL, run_one_timestep, (void *)(thrd_arg));
+    }
     
     struct timeval start_time, end_time;
     gettimeofday(&start_time, NULL);
-    precompute(grid_height);
+    precompute();
 
-    int iter = 1;
     int step_taken = 0;
     double runtime = 0;
     bool done = false;
-    double water_level[N][N];
-    memset(water_level, 0, sizeof(water_level));
-    double absorbed[N][N];
-    memset(absorbed, 0, sizeof(absorbed));
+
     while (!done){
         done = true;
-        double level_change[N][N];
-        memset(level_change, 0, sizeof(level_change));
+        level_change = vector<vector<double>>(N, vector<double>(N, 0));
         // print_water(double water_level, N);
         for (int i=0; i<N; ++i){
             for (int j=0; j<N; ++j){
-                // rain falls
-                if (M > 0){
-                    water_level[i][j] += 1;
-                }
-                // absorbed by current spot
-                if (water_level[i][j] >= A){
-                    water_level[i][j] -= A;
-                    absorbed[i][j] += A;
-                }
-                else if (water_level[i][j] > 0){
-                    absorbed[i][j] += water_level[i][j];
-                    water_level[i][j] = 0;
-                }
-                // flow to other spot
-                if (!flow_map[i][j].empty()){
-                    double split_cnt = flow_map[i][j].size();
-                    if (water_level[i][j] >= 1){
-                        water_level[i][j] -= 1;
-                        for (auto dest: flow_map[i][j]){
-                            level_change[dest.first][dest.second] += 1.0/split_cnt;
-                        }
-                    }
-                    else if (water_level[i][j]>0){
-                        for (auto dest: flow_map[i][j]){
-                            level_change[dest.first][dest.second] += water_level[i][j]/split_cnt;
-                        }
-                        water_level[i][j] = 0;
-                    }
-                }
+                run_one_timestep_point(i, j);
+            }
+        }
+        for (int i=0; i<N; ++i){
+            for (int j=0; j<N; ++j){
                 // determine if all is done
                 if (!done || water_level[i][j]>0){
                     done = false;
                 }
-            }
-        }
-        for (int i=0; i<N; ++i){
-            for (int j=0; j<N; ++j){
-
                 water_level[i][j] += level_change[i][j];
             }
         }
         step_taken++;
         M--;
     }
-
     gettimeofday(&end_time, NULL);
 
     // print result
