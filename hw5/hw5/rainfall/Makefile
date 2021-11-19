@@ -1,3 +1,5 @@
+all: rainfall_seq rainfall_pt
+
 rainfall_seq: rainfall_seq.o
 	g++ rainfall_seq.o -o rainfall_seq
 

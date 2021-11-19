@@ -155,13 +155,17 @@ int main(int argc, char * argv[]){
         M--;
     }
     gettimeofday(&end_time, NULL);
+    
+    // print result
     runtime = calc_time(start_time, end_time);
-    cout << "Rainfall simulation completed in " << step_taken << " time steps." << endl;
-    cout << "Runtime = " << runtime/1000.0 << " milliseconds." << endl;
+    cout << "Rainfall simulation took " << step_taken << " time steps to complete." << endl;
+    cout << "Runtime = " << runtime/1000000.0 << " seconds." << endl;
+    cout << endl;
     cout << "The following grid shows the number of raindrops absorbed at each point:" << endl;
     for (int i=0; i<N; i++){
         for (int j=0; j<N; j++){
-            cout << absorbed[i][j] << " ";
+            cout.width(8);
+            cout << absorbed[i][j];
         }
         cout << endl;
     }
