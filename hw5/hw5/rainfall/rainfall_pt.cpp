@@ -5,20 +5,31 @@
 #include <sys/time.h>
 #include <vector>
 #include <cstring>
+#include <pthread.h>
 
 using namespace std;
 
 /* Properties */
+// input
 int P;      // number of threads
 int M;      // total rain drops
 double A;   // absorption rate
 int N;      // landscape dimension, NxN
 
+// data
 vector<vector<vector<pair<int, int>>>> flow_map;
 vector<vector<double>> water_level;
 vector<vector<double>> absorbed;
 vector<vector<int>> grid_height;
 vector<vector<double>> level_change;
+
+// parallel
+
+
+// result
+int step_taken = 0;
+double runtime = 0;
+
 
 /* Helper function */
 double calc_time(struct timeval start, struct timeval end) {
@@ -42,7 +53,7 @@ void print_water(double water_level[][4], int N){
     }
 }
 
-void init(string file_name) {
+void init_data(string file_name) {
     flow_map = vector<vector<vector<pair<int, int>>>>(N, vector<vector<pair<int, int>>>(N));
     water_level = vector<vector<double>>(N, vector<double>(N, 0.0));
     absorbed = vector<vector<double>>(N, vector<double>(N, 0.0));
@@ -92,6 +103,21 @@ void precompute() {
     }
 }
 
+void print_results(struct timeval start, struct timeval end) {
+    runtime = calc_time(start, end);
+    cout << "Rainfall simulation took " << step_taken << " time steps to complete." << endl;
+    cout << "Runtime = " << runtime/1000000.0 << " seconds." << endl;
+    cout << endl;
+    cout << "The following grid shows the number of raindrops absorbed at each point:" << endl;
+    for (int i=0; i<N; i++){
+        for (int j=0; j<N; j++){
+            cout.width(8);
+            cout << absorbed[i][j];
+        }
+        cout << endl;
+    }
+}
+
 
 /* Main compute function */
 void run_one_timestep_point(int i, int j) {
@@ -126,51 +152,25 @@ void run_one_timestep_point(int i, int j) {
     }
 }
 
-int main(int argc, char * argv[]){
-    if (argc != 6){
-        fprintf(stderr, "Argument Count.\n");
-    }
-    // read in the parameters
-    P = atoi(argv[1]);      // number of threads
-    M = atoi(argv[2]);      // total rain drops
-    A = stod(argv[3]);      // absorption rate
-    N = atoi(argv[4]);      // landscape dimension, NxN
-    std::string file_name = argv[5];
-    init(file_name);
+void* runSimulation(void* args) {
+    /* divide landscap by row to simultaneous groups */
+    int thrdID = *(int*)args;
 
-    /* Create the threads, mutexes and barrier */
-    pthread_t *threads;
-    threads = (pthread_t *) malloc(P * sizeof(pthread_t));
-
-    
-    int *thrd_arg;
-    for (int i = 0; i < P; i++) {
-        thrd_arg = (int *) malloc(sizeof(int));
-        *thrd_arg = i;
-        // pthread_create(&threads[i], NULL, run_one_timestep, (void *)(thrd_arg));
-    }
-    
-    struct timeval start_time, end_time;
-    gettimeofday(&start_time, NULL);
-    precompute();
-
-    int step_taken = 0;
-    double runtime = 0;
+    int num_tasks = N / P;
     bool done = false;
-
     while (!done){
         done = true;
         level_change = vector<vector<double>>(N, vector<double>(N, 0));
-        // print_water(double water_level, N);
         for (int i=0; i<N; ++i){
             for (int j=0; j<N; ++j){
                 run_one_timestep_point(i, j);
             }
         }
-        for (int i=0; i<N; ++i){
-            for (int j=0; j<N; ++j){
+        // this check should wait until one timestep complete
+        for (int i = 0; i < N; ++i){
+            for (int j = 0; j < N; ++j){
                 // determine if all is done
-                if (!done || water_level[i][j]>0){
+                if (water_level[i][j] > 0){
                     done = false;
                 }
                 water_level[i][j] += level_change[i][j];
@@ -179,20 +179,36 @@ int main(int argc, char * argv[]){
         step_taken++;
         M--;
     }
+}
+
+int main(int argc, char * argv[]){
+    if (argc != 6){
+        fprintf(stderr, "Argument Count.\n");
+    }
+    /* read in the parameters */
+    P = atoi(argv[1]);      // number of threads
+    M = atoi(argv[2]);      // total rain drops
+    A = stod(argv[3]);      // absorption rate
+    N = atoi(argv[4]);      // landscape dimension, NxN
+    std::string file_name = argv[5];
+    init_data(file_name);
+
+    /* parallelly run simulation */
+    struct timeval start_time, end_time;
+    gettimeofday(&start_time, NULL);
+    precompute();
+
+    // Create the threads
+    pthread_t* threads;
+    threads = (pthread_t *) malloc(P * sizeof(pthread_t));
+    for (int i = 0; i < P; i++) {
+        // use i as the threadID
+        int thrdID = i;
+        pthread_create(&threads[i], NULL, runSimulation, (void*)thrdID);
+    }
+
     gettimeofday(&end_time, NULL);
 
-    // print result
-    runtime = calc_time(start_time, end_time);
-    cout << "Rainfall simulation took " << step_taken << " time steps to complete." << endl;
-    cout << "Runtime = " << runtime/1000000.0 << " seconds." << endl;
-    cout << endl;
-    cout << "The following grid shows the number of raindrops absorbed at each point:" << endl;
-    for (int i=0; i<N; i++){
-        for (int j=0; j<N; j++){
-            cout.width(8);
-            cout << absorbed[i][j];
-        }
-        cout << endl;
-    }
+    print_results(start_time, end_time);
     return -1;
 }
