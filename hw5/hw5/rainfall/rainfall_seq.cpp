@@ -28,16 +28,6 @@ double calc_time(struct timeval start, struct timeval end) {
     }
 }
 
-// void print_water(double water_level[][4], int N){
-//     cout << "###################" << endl;
-//     for (int i=0; i<N; ++i){
-//         for (int j=0; j<N; ++j){
-//             cout << water_level[i][j] << " ";
-//         }
-//         cout << endl;
-//     }
-// }
-
 int main(int argc, char * argv[]){
     /* acquire input parameters */
     int M;                    // total rain drops
@@ -67,23 +57,6 @@ int main(int argc, char * argv[]){
             }
         }
     }
-    // if (argc != 5){
-    //     fprintf(stderr, "Argument Count.\n");
-    // }
-    // // read in the parameters
-    // int M = atoi(argv[1]);      // total rain drops
-    // double A = stod(argv[2]);   // absorption rate
-    // int N = atoi(argv[3]);      // landscape dimension, NxN
-    // std::string file_name = argv[4];
-    // std::ifstream myfile (file_name);
-    // int grid_height[N][N];
-    // if (myfile.is_open()){
-    //     for (int i=0; i<N; ++i){
-    //         for (int j=0; j<N; ++j){
-    //             myfile >> grid_height[i][j];
-    //         }
-    //     }
-    // }
 
     /* start of timer */
     struct timeval start_time, end_time; // variable to compute time consumption
