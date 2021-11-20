@@ -30,7 +30,6 @@ int num_tasks;
 vector<vector<pthread_mutex_t>> lockes;
 pthread_mutex_t lock_step;
 pthread_mutex_t lock_done;
-pthread_barrier_t barrier_new_loop;
 pthread_barrier_t barrier_update_water;
 pthread_barrier_t barrier_all_done;
 
@@ -178,12 +177,13 @@ void* run_part_simulation(void* args) {
 
     int step = 0;
     while (!all_done) {
-        pthread_barrier_wait(&barrier_new_loop);
         for (int i = thrdID * num_tasks; i < min((thrdID + 1)* num_tasks, N); ++i){
             for (int j = 0; j < N; ++j) {                
                 run_one_timestep_point(i, j);
             }
         }
+        // change all done to true if all threads enter new loop
+        pthread_barrier_wait(&barrier_all_done);
         all_done = true;    // assume true first
 
         // below check should wait until all parts in one whole timestep complete
@@ -200,7 +200,7 @@ void* run_part_simulation(void* args) {
         }
         step++;
 
-        // enter new loop only all parts is checked if done
+        // check if new loop only when all parts are checked if done
         pthread_barrier_wait(&barrier_all_done);
         step_taken = step;
     }
@@ -228,7 +228,6 @@ int main(int argc, char * argv[]){
         lockes.push_back(line);
     }
     // init barrier
-    pthread_barrier_init(&barrier_new_loop, NULL, P);
     pthread_barrier_init(&barrier_update_water, NULL, P);
     pthread_barrier_init(&barrier_all_done, NULL, P);
 

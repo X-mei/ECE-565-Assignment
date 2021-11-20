@@ -28,63 +28,34 @@ double calc_time(struct timeval start, struct timeval end) {
     }
 }
 
-// void print_water(double water_level[][4], int N){
-//     cout << "###################" << endl;
-//     for (int i=0; i<N; ++i){
-//         for (int j=0; j<N; ++j){
-//             cout << water_level[i][j] << " ";
-//         }
-//         cout << endl;
-//     }
-// }
-
 int main(int argc, char * argv[]){
     /* acquire input parameters */
-    int M;                    // total rain drops
-    double A;                 // absorption rate
-    int N;                    // landscape dimension, NxN
-    std::string file_name;
+    int M;
+    double A;
+    int N;
+    int grid_height[N][N];
     try {
         if (argc != 5){
             throw myex;
         }
-        M = atoi(argv[1]);   
-        A = stod(argv[2]);   
-        N = atoi(argv[3]);   
-        file_name = argv[4];
-        
-    }
-    catch(...){
-        fprintf(stderr, "Usage: ./rainfall_seq <steps_with_rain(M)> <absortion_rate(A)> <dimension(N)> <elevation_file>\n");
-        abort();
-    }
-    std::ifstream myfile (file_name);
-    int grid_height[N][N];    // height at each point
-    if (myfile.is_open()){
-        for (int i=0; i<N; ++i){
-            for (int j=0; j<N; ++j){
-                myfile >> grid_height[i][j];
+        M = atoi(argv[1]);   // total rain drops
+        A = stod(argv[2]);   // absorption rate
+        N = atoi(argv[3]);   // landscape dimension, NxN
+        std::string file_name = argv[4];
+        std::ifstream myfile (file_name);
+        if (myfile.is_open()){
+            for (int i=0; i<N; ++i){
+                for (int j=0; j<N; ++j){
+                    myfile >> grid_height[i][j];
+                }
             }
         }
     }
-    // if (argc != 5){
-    //     fprintf(stderr, "Argument Count.\n");
-    // }
-    // // read in the parameters
-    // int M = atoi(argv[1]);      // total rain drops
-    // double A = stod(argv[2]);   // absorption rate
-    // int N = atoi(argv[3]);      // landscape dimension, NxN
-    // std::string file_name = argv[4];
-    // std::ifstream myfile (file_name);
-    // int grid_height[N][N];
-    // if (myfile.is_open()){
-    //     for (int i=0; i<N; ++i){
-    //         for (int j=0; j<N; ++j){
-    //             myfile >> grid_height[i][j];
-    //         }
-    //     }
-    // }
-
+    catch(...){
+        fprintf(stderr, "Usage: ./rainfall_seq <steps_with_rain(M)> <absortion_rate(A)> <dimension(N)> <elevation_file>\n");
+        return -1;
+    }
+    
     /* start of timer */
     struct timeval start_time, end_time; // variable to compute time consumption
     double runtime = 0;                  // runtime of simulation, including flow chart precomputation
