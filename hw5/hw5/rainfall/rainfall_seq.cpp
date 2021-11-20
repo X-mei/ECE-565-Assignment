@@ -100,13 +100,13 @@ int main(int argc, char * argv[]){
         done = true;
         double level_change[N][N];
         memset(level_change, 0, sizeof(level_change));
-        cout << "###################" << endl;
-        for (int i=0; i<N; ++i){
-            for (int j=0; j<N; ++j){
-                cout << water_level[i][j] << " ";
-            }
-            cout << endl;
-        }
+        // cout << "###################" << endl;
+        // for (int i=0; i<N; ++i){
+        //     for (int j=0; j<N; ++j){
+        //         cout << water_level[i][j] << " ";
+        //     }
+        //     cout << endl;
+        // }
         for (int i=0; i<N; ++i){
             for (int j=0; j<N; ++j){
                 // rain falls
