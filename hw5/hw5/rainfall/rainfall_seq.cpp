@@ -5,6 +5,7 @@
 #include <sys/time.h>
 #include <vector>
 #include <cstring>
+#include <algorithm>
 #include <exception>
 
 using namespace std;
@@ -49,7 +50,8 @@ int main(int argc, char * argv[]){
         abort();
     }
     std::ifstream myfile (file_name);
-    int grid_height[N][N];    // height at each point
+    vector<vector<int>> grid_height(N, vector<int>(N));    // height at each point
+    //int grid_height[N][N];
     if (myfile.is_open()){
         for (int i=0; i<N; ++i){
             for (int j=0; j<N; ++j){
@@ -99,14 +101,18 @@ int main(int argc, char * argv[]){
     /* run the rainfall simulation */
     int step_taken = 0;          // time step count
     bool done = false;           // indicator of weather simulation should stop, i.e., no water on each point
-    double water_level[N][N];    // realtime record of water level on each point
-    memset(water_level, 0, sizeof(water_level));
-    double absorbed[N][N];       // aggregated amount of water absorbed
-    memset(absorbed, 0, sizeof(absorbed));
+    vector<vector<double>> water_level(N, vector<double>(N));    // realtime record of water level on each point
+    // double water_level[N][N];
+    // memset(water_level, 0, sizeof(water_level));
+    vector<vector<double>> absorbed(N, vector<double>(N));    // aggregated amount of water absorbed
+    // double absorbed[N][N];
+    // memset(absorbed, 0, sizeof(absorbed));
+    vector<vector<double>> level_change(N, vector<double>(N));      // record the water flowing from other point to each point at each time step
     while (!done){
         done = true;
-        double level_change[N][N];  // record the water flowing from other point to each point at each time step
-        memset(level_change, 0, sizeof(level_change));
+        // std::cout << step_taken << endl;
+        //std::fill(level_change.begin(), level_change.end(), 0.0);
+        //memset(level_change, 0, sizeof(level_change));
         for (int i=0; i<N; ++i){
             for (int j=0; j<N; ++j){
                 // rain falls
@@ -146,8 +152,8 @@ int main(int argc, char * argv[]){
         }
         for (int i=0; i<N; ++i){
             for (int j=0; j<N; ++j){
-
                 water_level[i][j] += level_change[i][j];
+                level_change[i][j] = 0;
             }
         }
         step_taken++;

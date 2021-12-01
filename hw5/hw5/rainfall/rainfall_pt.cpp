@@ -28,8 +28,6 @@ bool all_done = false;
 // parallel
 int num_tasks;
 vector<vector<pthread_mutex_t>> lockes;
-pthread_mutex_t lock_step;
-pthread_mutex_t lock_done;
 pthread_barrier_t barrier_update_water;
 pthread_barrier_t barrier_all_done;
 
